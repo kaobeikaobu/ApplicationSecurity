@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Page</title>
+</head>
+
+<body>
+    <h3>Welcome, Mr Admin</h3>
+    <a href="#" id="logout">Logout</a>
+    <h4>Authentication Logs</h4>
+    <table border="1" id="logsTable">
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Event</th>
+                <th>Status</th>
+                <th>Reason</th>
+                <th>IP</th>
+                <th>User Agent</th>
+            </tr>
+        </thead>
+        <tbody id="logsBody"></tbody>
+    </table>
+</body>
+<script>
+    function logoutUser(event) {
+        localStorage.removeItem("token");
+        window.location.href = 'login.html';
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+        window.location.href = 'login.html';
+    } else {
+        fetch("admin-protected", {
+            headers: {
+                Authorization: "Bearer " + token
+            }
+        })
+            .then(response => {
+                if (!response.ok) throw new Error("Unauthorized");
+                return response.text();
+            })
+            .then(() => {
+                loadLogs(); // load logs after admin is verified
+            })
+            .catch(() => window.location.href = 'login.html');
+    }
+
+    function loadLogs() {
+        fetch("/admin/logs", {
+            headers: {
+                Authorization: "Bearer " + token
+            }
+        })
+            .then(res => res.json())
+            .then(logs => {
+                const tbody = document.getElementById("logsBody");
+                tbody.innerHTML = ""; // clear any existing rows
+                logs.forEach(log => {
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                    <td>${new Date(log.timestamp).toLocaleString()}</td>
+                    <td>${log.name || ''}</td>
+                    <td>${log.email || ''}</td>
+                    <td>${log.role}</td>
+                    <td>${log.event}</td>
+                    <td>${log.status}</td>
+                    <td>${log.reason}</td>
+                    <td>${log.ip}</td>
+                    <td>${log.userAgent}</td>
+                `;
+                    tbody.appendChild(row);
+                });
+            })
+            .catch(err => {
+                alert("Failed to load logs");
+                console.error(err);
+            });
+    }
+
+    document.getElementById("logout").addEventListener("click", logoutUser);
+
+</script>
+
+</html>
